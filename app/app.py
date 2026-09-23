@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import Crud
+from app.routers import Crud_Router, Token_Router
 
 app = FastAPI(
     title="Curso de API",
@@ -7,4 +7,5 @@ app = FastAPI(
     version="1.0.0",
 )
 
-app.include_router(Crud)
+app.include_router(Crud_Router)
+app.include_router(Token_Router)

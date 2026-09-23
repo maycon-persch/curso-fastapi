@@ -8,13 +8,18 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi[standard]>=0.141.1",
+    "harlequin>=2.15.0",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.14.0",
     "pytest-cov>=7.1.0",
     "sqlalchemy>=2.0.54",
 ]
 
 [project.scripts]
-curso-fastapi = "curso_fastapi:main"
+curso-fastapi = "main:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
@@ -31,8 +36,15 @@ extend-exclude = ['migrations']
 
 [tool.ruff.lint]
 preview = true
-select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+select = ["ALL"]
+ignore = ["D203",
+          "D213",
+          "COM812",
+]
 
 [tool.ruff.format]
 preview = true
 quote-style = "double"
+
+[tool.uv]
+package = false
