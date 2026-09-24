@@ -23,7 +23,7 @@ from app.models import User
 # ───── CRUD TESTE ────────────────────────────────────────────────────────────
 Crud_Router = APIRouter(prefix="/users", tags=["Users teste do curso "])
 
-Token_Router = APIRouter(prefix="/token", tags=["Autenticação de usuario"])
+Token_Router = APIRouter(tags=["Autenticação de usuario"])
 
 
 @Crud_Router.post(
@@ -33,7 +33,7 @@ def post_user(user: UserCreate, session: Session = Depends(get_session)):
 
     db_user = session.scalar(
         select(User).where(
-            (User.username == user.username) or User.email == user.email
+            (User.username == user.username) | (User.email == user.email)
         )
     )
     if db_user:
@@ -60,13 +60,20 @@ def post_user(user: UserCreate, session: Session = Depends(get_session)):
     return db_user
 
 
+@Crud_Router.get("/get/id", status_code=status.HTTP_200_OK)
+def get_id(
+    current_user: User = Depends(get_current_user),
+):
+    return {"id": current_user.id}
+
+
 @Crud_Router.get(
     "/Read", response_model=UserList, status_code=status.HTTP_200_OK
 )
 def get_user(
     pagina: int = 0,
     session: Session = Depends(get_session),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     users = session.scalars(select(User).limit(10).offset(pagina * 10))
     return {"users": users}
@@ -78,10 +85,10 @@ def get_user(
     response_model=UserResponse,
 )
 def update_user(
-    user: UserPut, 
-    user_id: int, 
+    user: UserPut,
+    user_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
 
     if current_user.id != user_id:
@@ -90,16 +97,16 @@ def update_user(
             detail="Você não possui permissão",
         )
 
-    if username := user.username:
-        current_user.username = username
-
-    if email := user.email:
-        current_user.email = email
-
-    if password := user.password:
-        current_user.password = get_password_hash(password)
-
     try:
+        if username := user.username:
+            current_user.username = username
+
+        if email := user.email:
+            current_user.email = email
+
+        if password := user.password:
+            current_user.password = get_password_hash(password)
+
         session.commit()
         session.refresh(current_user)
 
@@ -114,21 +121,25 @@ def update_user(
 @Crud_Router.delete(
     "/Delete/{user_id}", status_code=status.HTTP_200_OK, response_model=Message
 )
-def delete_user(user_id: int, session: Session = Depends(get_session), current_user = Depends(get_current_user)):
+def delete_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
 
     if current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você não possui permissão",
         )
-    
-    session.delete(get_current_user)
+
+    session.delete(current_user)
     session.commit()
 
     return Message(message="Usuario deletado!")
 
 
-@Token_Router.post("/login", status_code=status.HTTP_200_OK)
+@Token_Router.post("/token/get-token/", response_model=Token)
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
@@ -139,13 +150,20 @@ def login_for_access_token(
 
     if not user_db:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Login inválido!"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Login inválido!",
         )
+
+    print("usuario encontrado")
 
     if not verify_password(form_data.password, user_db.password):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Login inválido!"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Login inválido!",
         )
 
-    access_token = create_access_token({"sub": user_db.email})
-    return {"access_token": access_token, "tpken_type": "Bearer"}
+    print("senha confirmada")
+
+    access_token = create_access_token(data={"sub": user_db.email})
+
+    return {"access_token": access_token, "token_type": "Bearer"}
