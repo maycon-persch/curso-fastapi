@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from pwdlib import PasswordHash
-from jwt import encode, decode, DecodeError
+
 from fastapi import Depends, HTTPException, status
-from app.database import get_session
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from jwt import DecodeError, decode, encode
+from pwdlib import PasswordHash
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database import get_session
 from app.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token/get-token/")

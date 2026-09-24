@@ -1,35 +1,35 @@
-from fastapi import APIRouter, status, HTTPException, Depends
-from fastapi.security import OAuth2PasswordRequestForm
-from app.schemas import (
-    UserCreate,
-    UserResponse,
-    UserList,
-    Message,
-    UserPut,
-    Token,
-)
-from .database import get_session
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from app.security import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    get_current_user,
-)
-from app.models import User
+from typing import Annotated
 
-# ───── CRUD TESTE ────────────────────────────────────────────────────────────
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.database import get_session
+from app.models import User
+from app.schemas import (
+    FilterPage,
+    Message,
+    UserCreate,
+    UserList,
+    UserPut,
+    UserResponse,
+)
+from app.security import (
+    get_current_user,
+    get_password_hash,
+)
+
 Crud_Router = APIRouter(prefix="/users", tags=["Users teste do curso "])
 
-Token_Router = APIRouter(tags=["Autenticação de usuario"])
+T_Session = Annotated[Session, Depends(get_session)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @Crud_Router.post(
     "/create", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-def post_user(user: UserCreate, session: Session = Depends(get_session)):
+def post_user(user: UserCreate, session: T_Session):
 
     db_user = session.scalar(
         select(User).where(
@@ -62,7 +62,7 @@ def post_user(user: UserCreate, session: Session = Depends(get_session)):
 
 @Crud_Router.get("/get/id", status_code=status.HTTP_200_OK)
 def get_id(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser,
 ):
     return {"id": current_user.id}
 
@@ -71,9 +71,9 @@ def get_id(
     "/Read", response_model=UserList, status_code=status.HTTP_200_OK
 )
 def get_user(
-    pagina: int = 0,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    session: T_Session,
+    current_user: CurrentUser,
+    pagina: Annotated[FilterPage, Query()],
 ):
     users = session.scalars(select(User).limit(10).offset(pagina * 10))
     return {"users": users}
@@ -87,8 +87,8 @@ def get_user(
 def update_user(
     user: UserPut,
     user_id: int,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    session: T_Session,
+    current_user: CurrentUser,
 ):
 
     if current_user.id != user_id:
@@ -97,16 +97,16 @@ def update_user(
             detail="Você não possui permissão",
         )
 
+    if username := user.username:
+        current_user.username = username
+
+    if email := user.email:
+        current_user.email = email
+
+    if password := user.password:
+        current_user.password = get_password_hash(password)
+
     try:
-        if username := user.username:
-            current_user.username = username
-
-        if email := user.email:
-            current_user.email = email
-
-        if password := user.password:
-            current_user.password = get_password_hash(password)
-
         session.commit()
         session.refresh(current_user)
 
@@ -123,8 +123,8 @@ def update_user(
 )
 def delete_user(
     user_id: int,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    session: T_Session,
+    current_user: CurrentUser,
 ):
 
     if current_user.id != user_id:
@@ -137,33 +137,3 @@ def delete_user(
     session.commit()
 
     return Message(message="Usuario deletado!")
-
-
-@Token_Router.post("/token/get-token/", response_model=Token)
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session),
-):
-    user_db = session.scalar(
-        select(User).where(User.email == form_data.username)
-    )
-
-    if not user_db:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Login inválido!",
-        )
-
-    print("usuario encontrado")
-
-    if not verify_password(form_data.password, user_db.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Login inválido!",
-        )
-
-    print("senha confirmada")
-
-    access_token = create_access_token(data={"sub": user_db.email})
-
-    return {"access_token": access_token, "token_type": "Bearer"}

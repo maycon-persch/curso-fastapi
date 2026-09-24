@@ -1,10 +1,12 @@
 [project]
-name = "curso-fastapi"
+name = "Curso-FastAPI"
 version = "0.1.0"
-description = "Add your description here"
+description = "Realizando o curso do Eduardo Mendes de FastAPI-2025, para terminar o projeto que o Pedro me deu, migrar o projeto de django para FastAPI."
 readme = "README.md"
 authors = [
-    { name = "maycon-persch", email = "mayconpersch01@gmail.com" }
+    { name = "maycon-persch", email = "mayconpersch01@gmail.com"} ,
+    {  name = "Pedro", email = " ? "}
+    
 ]
 requires-python = ">=3.14"
 dependencies = [
@@ -36,11 +38,8 @@ extend-exclude = ['migrations']
 
 [tool.ruff.lint]
 preview = true
-select = ["ALL"]
-ignore = ["D203",
-          "D213",
-          "COM812",
-]
+select = ["I", "F", "E", "W", "PL", "PT", "FAST"]
+
 
 [tool.ruff.format]
 preview = true
