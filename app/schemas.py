@@ -1,21 +1,21 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
-    username: str
+    name: str
     email: EmailStr
     password: str
 
 
 class UserPut(BaseModel):
-    username: str | None = None
+    name: str | None = None
     email: EmailStr | None = None
     password: str | None = None
 
 
 class UserResponse(BaseModel):
     id: int
-    username: str
+    name: str
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
@@ -32,3 +32,13 @@ class Message(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class FilterPage(BaseModel):
+    pagina: int = Field(ge=0, default=0)
+
+
+class Admin(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
