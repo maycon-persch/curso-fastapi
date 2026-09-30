@@ -167,4 +167,3 @@ async def delete_user(
     await session.commit()
 
     return Message(message="Usuario deletado!")
-
