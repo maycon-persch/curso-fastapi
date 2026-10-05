@@ -87,59 +87,37 @@ async def update_user(
 ):
 
     if not current_user.is_admin:
-        if current_user.id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Você não possui permissão",
-            )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão",
+        )
 
-        if name := user.name:
-            current_user.name = name
+    user_db = await session.scalar(select(User).where(User.id == user_id))
 
-        if email := user.email:
-            current_user.email = email
+    if not user_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario não encontrado",
+        )
+    if name := user.name:
+        user_db.name = name
 
-        if password := user.password:
-            current_user.password = get_password_hash(password)
+    if email := user.email:
+        user_db.email = email
 
-        try:
-            await session.commit()
-            await session.refresh(current_user)
+    if password := user.password:
+        user_db.password = get_password_hash(password)
 
-            return current_user
-        except IntegrityError:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Este E-mail já existe!",
-            )
+    try:
+        await session.commit()
+        await session.refresh(user_db)
 
-    else:
-        user_db = await session.scalar(select(User).where(User.id == user_id))
-
-        if not user_db:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario não encontrado",
-            )
-        if name := user.name:
-            user_db.name = name
-
-        if email := user.email:
-            user_db.email = email
-
-        if password := user.password:
-            user_db.password = get_password_hash(password)
-
-        try:
-            await session.commit()
-            await session.refresh(user_db)
-
-            return user_db
-        except IntegrityError:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Este email já existe!",
-            )
+        return user_db
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este email já existe!",
+        )
 
 
 @Crud_Router.delete(
